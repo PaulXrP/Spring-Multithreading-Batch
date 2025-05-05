@@ -1,0 +1,9 @@
+package com.dev.pranay.Multithreaded.Batched.Processing.repositories;
+
+import com.dev.pranay.Multithreaded.Batched.Processing.entities.Product;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ProductRepository extends JpaRepository<Product, Long> {
+}
