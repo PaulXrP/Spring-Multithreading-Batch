@@ -20,10 +20,10 @@ public class Product {
     private String name;
     private String category;
     private double price;
-    @Column(name = "isOfferApplied")
+    @Column(name = "is_offer_applied")
     private boolean isOfferApplied;
-    @Column(name = "discountPercentage")
+    @Column(name = "discount_percentage")
     private double discountPercentage;
-    @Column(name = "priceAfterDiscount")
+    @Column(name = "price_after_discount")
     private double priceAfterDiscount;
 }

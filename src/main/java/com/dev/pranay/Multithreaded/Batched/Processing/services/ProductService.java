@@ -5,13 +5,17 @@ import com.dev.pranay.Multithreaded.Batched.Processing.repositories.ProductRepos
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,9 +27,12 @@ public class ProductService {
 
     private final List<Product> productBuffer = new ArrayList<>();
 
+    private final JdbcTemplate jdbcTemplate;
+
     private static final int BATCH_SIZE = 50;
 
-    public String saveProductFromCsvInBatch(String filePath) {
+    @Transactional
+    public String saveProductFromCsvInBatch(String filePath) { //JPA-based with batching
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
             boolean firstLine = true;
@@ -70,10 +77,75 @@ public class ProductService {
         return "Products from csv saved in batches successfully!!";
     }
 
+
+
     public List<Long> getAllIds() {
         return productRepository.findAll()
                 .stream().map(Product::getId)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public String saveProductFromCsvInBatchViaJdbcTemplate(String filePath) {
+
+        //Optimized JDBC Batch Insert
+
+         List<Object[]> batchArgs = new ArrayList<>();
+
+         try (BufferedReader br = new BufferedReader(new FileReader(filePath))){
+                String line;
+                boolean firstLine = true;
+
+                while ((line = br.readLine()) != null) {
+                    if(firstLine) {
+                        firstLine = false; //skip header
+                        continue;
+                    }
+
+                    String[] fields = line.split(",");
+                    if(fields.length == 7) {
+                        Object[] values = new Object[] {
+                                Long.parseLong(fields[0].trim()), //id
+                                fields[1].trim(), //name
+                                fields[2].trim(), //category
+                                Double.parseDouble(fields[3].trim()), //price
+                                Boolean.parseBoolean(fields[4].trim()), //isOfferApplied
+                                Double.parseDouble(fields[5].trim()), // discountPercentage
+                                Double.parseDouble(fields[6].trim()) //priceAfterDiscount
+                        };
+                        batchArgs.add(values);
+                    }
+
+                    if(batchArgs.size() >= 1000) {
+                        executeBatchInsert(batchArgs);
+                        batchArgs.clear();
+                    }
+                }
+
+                //save remaining
+             if(!batchArgs.isEmpty()) {
+                 executeBatchInsert(batchArgs);
+             }
+
+         }  catch (IOException e) {
+             log.error("Error reading CSV file: {}", e.getMessage());
+             return "Failed to save products!!";
+         }
+        return "Products from csv saved in batches successfully!!";
+    }
+
+    private void executeBatchInsert(List<Object[]> batchArgs) {
+          String sql = "INSERT INTO products \n" +
+                  "(id, name, category, price, is_offer_applied, discount_percentage, price_after_discount)\n" +
+                  "VALUES (?, ?, ?, ?, ?, ?, ?)\n";
+
+//          jdbcTemplate.batchUpdate(sql, batchArgs);
+
+        try {
+            jdbcTemplate.batchUpdate(sql, batchArgs);
+        } catch (DataAccessException e) {
+            log.error("DB Batch Insert failed: {}", e.getMessage());
+        }
     }
 
 //    public String resetRecords() {
@@ -98,6 +170,12 @@ public class ProductService {
 
 
         productRepository.saveAll(all); //single batch save
+        return "Data reset to DB!!!";
+    }
+
+    @Transactional
+    public String resetRecordsJPQL() {
+        productRepository.resetAllProductFields();
         return "Data reset to DB!!!";
     }
 

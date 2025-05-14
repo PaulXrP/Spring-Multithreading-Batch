@@ -2,6 +2,7 @@ package com.dev.pranay.Multithreaded.Batched.Processing.controller;
 
 import com.dev.pranay.Multithreaded.Batched.Processing.services.ProductService;
 import com.dev.pranay.Multithreaded.Batched.Processing.services.ProductServiceV2;
+import com.dev.pranay.Multithreaded.Batched.Processing.services.ProductServiceV3;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,10 +19,26 @@ public class ProductController {
 
     private final ProductServiceV2 productServiceV2;
 
+    private final ProductServiceV3 productServiceV3;
+
     @PostMapping("/save-csv-batch")
     public ResponseEntity<String> saveProductsFromCsvToDbInBatch(@RequestParam("filepath")
                                                                  String filePath) {
         String saved = productService.saveProductFromCsvInBatch(filePath);
+        return new ResponseEntity<>(saved, HttpStatus.OK);
+    }
+
+    @PostMapping("/save-csv-batch2")
+    public ResponseEntity<String> saveProductsFromCsvToDbInBatch2(@RequestParam("filepath")
+                                                                 String filePath) {
+        String saved = productServiceV3.saveProductFromCsvInBatch(filePath);
+        return new ResponseEntity<>(saved, HttpStatus.OK);
+    }
+
+    @PostMapping("/save-csv-batch-via-Jdbc-template")
+    public ResponseEntity<String> saveProductsFromCsvToDbInBatchJdbc(@RequestParam("filepath")
+                                                                 String filePath) {
+        String saved = productService.saveProductFromCsvInBatchViaJdbcTemplate(filePath);
         return new ResponseEntity<>(saved, HttpStatus.OK);
     }
 
@@ -34,6 +51,13 @@ public class ProductController {
     @GetMapping("/reset")
     public ResponseEntity<String> dataReset() {
         String resetRecords = productService.resetRecords();
+        return new ResponseEntity<>(resetRecords, HttpStatus.OK);
+    }
+
+
+    @GetMapping("/resetJPQL")
+    public ResponseEntity<String> dataResetJPQL() {
+        String resetRecords = productService.resetRecordsJPQL();
         return new ResponseEntity<>(resetRecords, HttpStatus.OK);
     }
 

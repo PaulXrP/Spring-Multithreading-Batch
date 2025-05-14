@@ -2,8 +2,14 @@ package com.dev.pranay.Multithreaded.Batched.Processing.repositories;
 
 import com.dev.pranay.Multithreaded.Batched.Processing.entities.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
+
+    @Modifying
+    @Query("UPDATE Product p SET p.isOfferApplied = false, p.priceAfterDiscount = p.price, p.discountPercentage = 0")
+    void resetAllProductFields();
 }
