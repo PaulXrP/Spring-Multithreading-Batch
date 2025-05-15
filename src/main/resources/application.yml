@@ -32,9 +32,9 @@ spring:
         jdbc:
           batch_size: 1000
           batch_versioned_data: true
-      order_inserts: true
-      order_updates: true
-      generate_statistics: true
+        order_inserts: true
+        order_updates: true
+        generate_statistics: true
 
 logging:
   level:

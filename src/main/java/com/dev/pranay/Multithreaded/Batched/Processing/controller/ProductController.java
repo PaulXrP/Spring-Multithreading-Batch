@@ -35,6 +35,13 @@ public class ProductController {
         return new ResponseEntity<>(saved, HttpStatus.OK);
     }
 
+    @PostMapping("/save-csv-batch-multithreading-using-ExecutorService")
+    public ResponseEntity<String> saveProductsFromCsvToDbInBatch3(@RequestParam("filepath")
+                                                                  String filePath) {
+        String saved = productServiceV3.saveProductFromCsvInBatchMultithreaded(filePath);
+        return new ResponseEntity<>(saved, HttpStatus.OK);
+    }
+
     @PostMapping("/save-csv-batch-via-Jdbc-template")
     public ResponseEntity<String> saveProductsFromCsvToDbInBatchJdbc(@RequestParam("filepath")
                                                                  String filePath) {

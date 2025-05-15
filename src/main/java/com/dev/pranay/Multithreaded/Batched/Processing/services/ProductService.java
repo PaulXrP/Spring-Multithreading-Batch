@@ -61,6 +61,16 @@ public class ProductService {
                     productRepository.saveAll(productBuffer);
                     productBuffer.clear();
                 }
+
+                /*
+                Bonus: Don't Use saveAll() for High Performance Batching
+                        saveAll() does not flush or clear automatically and
+                        retains all entities in the persistence context.
+                        That causes Hibernate to:
+
+                        Keep tracking each object → memory spike
+                        Emit one INSERT per row → you get 10,000 INSERT log lines
+                 */
             }
 
             // Save remaining

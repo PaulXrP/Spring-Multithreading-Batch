@@ -3,6 +3,7 @@ package com.dev.pranay.Multithreaded.Batched.Processing.services;
 import com.dev.pranay.Multithreaded.Batched.Processing.entities.Product;
 import com.dev.pranay.Multithreaded.Batched.Processing.repositories.ProductRepository;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @Service
 @Slf4j
@@ -56,9 +61,11 @@ public class ProductServiceV3 {
 
     private final List<Product> productBuffer = new ArrayList<>();
 
-    private static final int BATCH_SIZE = 50;
+    private static final int BATCH_SIZE = 2000;
 
     private final EntityManager entityManager;
+
+    private final EntityManagerFactory emf;
 
     @Transactional
     public String saveProductFromCsvInBatch(String filePath) {
@@ -107,6 +114,69 @@ public class ProductServiceV3 {
             return "Failed to save products!!";
         }
         return "Products from csv saved in batches successfully!!";
+    }
+
+    public String saveProductFromCsvInBatchMultithreaded(String filePath) {
+
+        List<String> allLines = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+             String line;
+             while ((line = br.readLine()) != null) {
+                 allLines.add(line);
+             }
+        }  catch (IOException e) {
+            log.error("Error reading CSV file: {}", e.getMessage());
+            return "Failed";
+        }
+
+        int numOfThread = 4;
+        int chunkSize = allLines.size() / numOfThread;
+        ExecutorService executor = Executors.newFixedThreadPool(numOfThread);
+
+        List<Future<?>> futures = new ArrayList<>();
+
+        for (int i = 0; i < numOfThread; i++) {
+            int start = i * chunkSize;
+            int end = ( i == numOfThread - 1) ? allLines.size() : (i+1) * chunkSize;
+            List<String> chunks = allLines.subList(start, end);
+
+
+//            Runnable task = () -> {
+//                EntityManager em = emf.createEntityManager();
+//                em.getTransaction().begin();
+//                new ProductBatchInserter(chunks, em).run();
+//                em.getTransaction().commit();
+//                em.close();
+//            };
+
+            Runnable task = () -> {
+                EntityManager em = emf.createEntityManager();
+                em.getTransaction().begin(); //  START TRANSACTION
+
+                try {
+                    new ProductBatchInserter(chunks, em).run(); // PASS CHUNK
+                    em.getTransaction().commit(); //  COMMIT
+                } catch (Exception e) {
+                    em.getTransaction().rollback(); // ROLLBACK ON FAILURE
+                    e.printStackTrace();
+                } finally {
+                    em.close();
+                }
+            };
+
+            futures.add(executor.submit(task));
+        }
+
+        futures.forEach(f -> {
+            try {
+                f.get(); //wait for completion
+            } catch (Exception e) {
+                log.error("Thread failed: {}", e.getMessage());
+            }
+        });
+
+        executor.shutdown();
+        return "Multithreaded batch processing done!";
     }
 }
 
