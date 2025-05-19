@@ -2,6 +2,8 @@ package com.dev.pranay.Multithreaded.Batched.Processing.services;
 
 import com.dev.pranay.Multithreaded.Batched.Processing.entities.Product;
 import com.dev.pranay.Multithreaded.Batched.Processing.repositories.ProductRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,9 @@ public class ProductService {
     private final JdbcTemplate jdbcTemplate;
 
     private static final int BATCH_SIZE = 50;
+
+    @PersistenceContext
+    private final EntityManager entityManager; // Inject EntityManager
 
     @Transactional
     public String saveProductFromCsvInBatch(String filePath) { //JPA-based with batching
@@ -152,7 +157,10 @@ public class ProductService {
 //          jdbcTemplate.batchUpdate(sql, batchArgs);
 
         try {
+            long start = System.currentTimeMillis();
             jdbcTemplate.batchUpdate(sql, batchArgs);
+            long end = System.currentTimeMillis();
+            System.out.println("JdbcTemplate Batch Insert Time: " + (end - start) + " ms for " + batchArgs.size() + " records.");
         } catch (DataAccessException e) {
             log.error("DB Batch Insert failed: {}", e.getMessage());
         }
@@ -236,5 +244,12 @@ public class ProductService {
     public String deleteDb() {
         productRepository.deleteAll();
         return "Deleted DB records successfully!!!";
+    }
+
+    @Transactional
+    public String deleteDbOptimized() {
+       productRepository.deleteAllInBatch(); //Uses a single DELETE statement
+       entityManager.clear(); // Important! Clear the first-level cache
+        return "Deleted DB records successfully using bulk delete!";
     }
 }

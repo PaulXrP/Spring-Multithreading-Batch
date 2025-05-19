@@ -34,7 +34,10 @@ spring:
           batch_versioned_data: true
         order_inserts: true
         order_updates: true
-        generate_statistics: true
+#        batch_size: 1000                 ✅ Enables batching
+#          batch_versioned_data: true       ✅ Supports versioned entity batching
+#        order_inserts: true                ✅ Required for batching inserts
+#        order_updates: true                ✅ Required for batching updates
 
 logging:
   level:

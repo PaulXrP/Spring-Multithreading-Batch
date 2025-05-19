@@ -42,6 +42,13 @@ public class ProductController {
         return new ResponseEntity<>(saved, HttpStatus.OK);
     }
 
+    @PostMapping("/save-csv-batch-streaming-plus-multithreading-using-ExecutorService")
+    public ResponseEntity<String> saveProductsFromCsvToDbInBatch4(@RequestParam("filepath")
+                                                                  String filePath) {
+        String saved = productServiceV3.loadCsvStreamingInChunks(filePath);
+        return new ResponseEntity<>(saved, HttpStatus.OK);
+    }
+
     @PostMapping("/save-csv-batch-via-Jdbc-template")
     public ResponseEntity<String> saveProductsFromCsvToDbInBatchJdbc(@RequestParam("filepath")
                                                                  String filePath) {
@@ -83,6 +90,12 @@ public class ProductController {
     @DeleteMapping("/delete")
     public ResponseEntity<String> clearDb() {
         String deleted = productService.deleteDb();
+        return new ResponseEntity<>(deleted, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/deleteInBatch")
+    public ResponseEntity<String> clearDbOptimise() {
+        String deleted = productService.deleteDbOptimized();
         return new ResponseEntity<>(deleted, HttpStatus.OK);
     }
 

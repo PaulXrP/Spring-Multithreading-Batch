@@ -4,6 +4,7 @@ import com.dev.pranay.Multithreaded.Batched.Processing.entities.Product;
 import com.dev.pranay.Multithreaded.Batched.Processing.repositories.ProductRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityTransaction;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,10 +17,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 @Service
 @Slf4j
@@ -120,11 +118,11 @@ public class ProductServiceV3 {
 
         List<String> allLines = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-             String line;
-             while ((line = br.readLine()) != null) {
-                 allLines.add(line);
-             }
-        }  catch (IOException e) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                allLines.add(line);
+            }
+        } catch (IOException e) {
             log.error("Error reading CSV file: {}", e.getMessage());
             return "Failed";
         }
@@ -137,7 +135,7 @@ public class ProductServiceV3 {
 
         for (int i = 0; i < numOfThread; i++) {
             int start = i * chunkSize;
-            int end = ( i == numOfThread - 1) ? allLines.size() : (i+1) * chunkSize;
+            int end = (i == numOfThread - 1) ? allLines.size() : (i + 1) * chunkSize;
             List<String> chunks = allLines.subList(start, end);
 
 
@@ -177,7 +175,116 @@ public class ProductServiceV3 {
 
         executor.shutdown();
         return "Multithreaded batch processing done!";
+
+    /*
+    Benefits
+
+        Utilizes multiple CPU cores to speed up CSV parsing and DB insertions.
+        Keeps Hibernate batching enabled per-thread.
+        Ensures DB writes happen in parallel transactions, improving throughput.
+     */
     }
+
+    //Below is a streaming + multithreaded + Hibernate JDBC batching implementation of
+    // our CSV loader
+
+    public String loadCsvStreamingInChunks(String filePath) {
+        final int CHUNK_SIZE = 2000;
+        final int THREAD_POOL_SIZE = 4;
+
+        ExecutorService executor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
+        List<Future<?>> futures = new ArrayList<>();
+        List<String> chunkBuffer = new ArrayList<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            boolean isFirstLine = true;
+
+            while ((line = br.readLine()) != null) {
+                if (isFirstLine) {
+                    isFirstLine = false;
+                    continue;
+                }
+
+                chunkBuffer.add(line);
+
+                if (chunkBuffer.size() == CHUNK_SIZE) {
+                    //clone and clear the buffer
+                    List<String> chunkToProcess = new ArrayList<>(chunkBuffer);
+                    log.info("Submitting chunk of size {}", chunkToProcess.size());
+                    chunkBuffer.clear();
+
+                    futures.add(executor.submit(() -> {
+                        EntityManager em = emf.createEntityManager();
+                        EntityTransaction transaction = em.getTransaction();
+
+                        try {
+                            transaction.begin();
+                            new ProductBatchInserter(chunkToProcess, em).run();
+                            transaction.commit();
+                        } catch (Exception e) {
+                            if (transaction.isActive()) {
+                                transaction.rollback();
+                            }
+                            e.printStackTrace();
+                        } finally {
+                            em.close();
+                        }
+                    }));
+                }
+            }
+
+            // Submit remaining chunk after file is read completely
+                if(!chunkBuffer.isEmpty()) {
+                    List<String> finalChunk = new ArrayList<>(chunkBuffer);
+
+                    futures.add(executor.submit(() -> {
+                        EntityManager em = emf.createEntityManager();
+                        EntityTransaction tx = em.getTransaction();
+
+                        try {
+                            tx.begin();
+                            new ProductBatchInserter(finalChunk, em).run();
+                            tx.commit();
+                        } catch (Exception e) {
+                            if(tx.isActive()) {
+                                tx.rollback();
+                            }
+                            e.printStackTrace();
+                        } finally {
+                            em.close();
+                        }
+                    }));
+                }
+
+            // Wait for all tasks
+           for(Future<?> future : futures) {
+               try {
+                   future.get();
+               } catch (ExecutionException e) {
+                   log.error("Thread execution failed: {}", e.getMessage());
+               }
+           }
+
+
+            executor.shutdown();
+            executor.awaitTermination(1, TimeUnit.HOURS);
+
+        }  catch (IOException | InterruptedException e) {
+            log.error("Exception: {}", e.getMessage());
+        }
+        return "Streaming + Multithreaded batch processing done!";
+    }
+
+    /*
+    | Advantage                       | Description                               |
+| ------------------------------- | ----------------------------------------- |
+| ✅ Lower Memory Use              | Only 1 chunk (e.g., 2000 lines) is in RAM |
+| ✅ Scalable to GB-size Files     | Can handle millions of records            |
+| ✅ Threaded Processing           | Each chunk goes to a worker thread        |
+| ✅ Reuses Existing BatchInserter | Our `Runnable` logic doesn’t change      |
+
+     */
 }
 
 /*
