@@ -3,7 +3,9 @@ package com.dev.pranay.Multithreaded.Batched.Processing.controller;
 import com.dev.pranay.Multithreaded.Batched.Processing.services.ProductService;
 import com.dev.pranay.Multithreaded.Batched.Processing.services.ProductServiceV2;
 import com.dev.pranay.Multithreaded.Batched.Processing.services.ProductServiceV3;
+import com.dev.pranay.Multithreaded.Batched.Processing.services.ProductionCsvProcessingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +22,8 @@ public class ProductController {
     private final ProductServiceV2 productServiceV2;
 
     private final ProductServiceV3 productServiceV3;
+
+    private final ProductionCsvProcessingService processingService;
 
     @PostMapping("/save-csv-batch")
     public ResponseEntity<String> saveProductsFromCsvToDbInBatch(@RequestParam("filepath")
@@ -46,6 +50,13 @@ public class ProductController {
     public ResponseEntity<String> saveProductsFromCsvToDbInBatch4(@RequestParam("filepath")
                                                                   String filePath) {
         String saved = productServiceV3.loadCsvStreamingInChunks(filePath);
+        return new ResponseEntity<>(saved, HttpStatus.OK);
+    }
+
+    @PostMapping("/save-csv-batch-streaming-using-ExecutorService-production-grade")
+    public ResponseEntity<String> saveProductsFromCsvToDbInBatch5(@RequestParam("filepath")
+                                                                  String filePath) {
+        String saved = processingService.loadCsvStreamingInChunksProduction(filePath);
         return new ResponseEntity<>(saved, HttpStatus.OK);
     }
 
@@ -93,9 +104,30 @@ public class ProductController {
         return new ResponseEntity<>(deleted, HttpStatus.OK);
     }
 
-    @DeleteMapping("/deleteInBatch")
+    @DeleteMapping("/deleteInBulk")
     public ResponseEntity<String> clearDbOptimise() {
         String deleted = productService.deleteDbOptimized();
+        return new ResponseEntity<>(deleted, HttpStatus.OK);
+    }
+
+
+    @DeleteMapping("/deleteInBatch")
+    public ResponseEntity<String> clearDbInBatch() {
+        String deleted = productService.deleteByBatch();
+        return new ResponseEntity<>(deleted, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/deleteByPriceCondition")
+    public ResponseEntity<String> deleteProductsCheaperThan(@RequestParam("price") @PathVariable
+                                                                Double priceThreshold) {
+        String deleted = productService.deleteProductsCheaperThan(priceThreshold);
+        return new ResponseEntity<>(deleted, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/deleteByCategory")
+    public ResponseEntity<String> deleteProductsByCategory(@RequestParam("category")
+                                                               @PathVariable String category) {
+        String deleted = productService.deleteProductsByCategory(category);
         return new ResponseEntity<>(deleted, HttpStatus.OK);
     }
 

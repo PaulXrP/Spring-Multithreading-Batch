@@ -242,14 +242,63 @@ public class ProductService {
     }
 
     public String deleteDb() {
-        productRepository.deleteAll();
+
+        //1 SELECT + N DELETE
+        productRepository.deleteAll(); //Loads All Entities into Persistence Context (1st-level cache
+        //and then mark for deletion...That's N SQL DELETEs if N records exist.
         return "Deleted DB records successfully!!!";
     }
 
     @Transactional
     public String deleteDbOptimized() {
+        //1 DELETE
        productRepository.deleteAllInBatch(); //Uses a single DELETE statement
-       entityManager.clear(); // Important! Clear the first-level cache
+        //The delete happens in one atomic SQL statement — pushed straight to the DB.
+
+       entityManager.clear(); // Important! Clear the first-level cache to maintain consistency
+        //bcz entity manager had previously loaded same data that cache should be erased now
+        //to be in sync with database post deletion...
         return "Deleted DB records successfully using bulk delete!";
+    }
+
+    //If table has 100k+ rows and you want to avoid full-table lock,
+    // then prefer batched deletions by slice
+
+    @Transactional
+    public String deleteByBatch() {
+        int batchSize = 1000;
+        List<Product> batch;
+
+        do {
+            batch = productRepository.findTop1000By();
+            if(!batch.isEmpty()) {
+                productRepository.deleteAllInBatch(batch);
+                entityManager.clear(); //clear persistence context after each batch
+            }
+        } while (!batch.isEmpty());
+
+        return "DB deleted in batches successfully!!!";
+    }
+
+
+    @Transactional
+    public String deleteProductsCheaperThan(double priceThreshold) {
+
+        int deletedProductsBelowPrice = productRepository.deleteProductsBelowPrice(priceThreshold);
+
+        entityManager.clear(); // Crucial! Clear the first-level cache after bulk operation
+
+        return String.format("Deleted %d products with price <= %.2f successfully!", deletedProductsBelowPrice, priceThreshold);
+
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public String deleteProductsByCategory(String category) {
+        int deletedByCategory = productRepository.deleteByCategory(category);
+
+        entityManager.clear();
+
+        return String.format("Deleted %d products in category '%s' successfully!", deletedByCategory, category);
+
     }
 }
