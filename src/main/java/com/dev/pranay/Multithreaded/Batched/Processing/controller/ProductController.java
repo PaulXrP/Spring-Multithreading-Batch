@@ -1,9 +1,6 @@
 package com.dev.pranay.Multithreaded.Batched.Processing.controller;
 
-import com.dev.pranay.Multithreaded.Batched.Processing.services.ProductService;
-import com.dev.pranay.Multithreaded.Batched.Processing.services.ProductServiceV2;
-import com.dev.pranay.Multithreaded.Batched.Processing.services.ProductServiceV3;
-import com.dev.pranay.Multithreaded.Batched.Processing.services.ProductionCsvProcessingService;
+import com.dev.pranay.Multithreaded.Batched.Processing.services.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
@@ -22,6 +19,8 @@ public class ProductController {
     private final ProductServiceV2 productServiceV2;
 
     private final ProductServiceV3 productServiceV3;
+
+    private final ProductServiceV4 productServiceV4;
 
     private final ProductionCsvProcessingService processingService;
 
@@ -57,6 +56,13 @@ public class ProductController {
     public ResponseEntity<String> saveProductsFromCsvToDbInBatch5(@RequestParam("filepath")
                                                                   String filePath) {
         String saved = processingService.loadCsvStreamingInChunksProduction(filePath);
+        return new ResponseEntity<>(saved, HttpStatus.OK);
+    }
+
+    @PostMapping("/save-csv-batch-streaming-plus-multithreading-using-ExecutorService-async")
+    public ResponseEntity<String> saveProductsFromCsvToDbInBatch6(@RequestParam("filepath")
+                                                                  String filePath) {
+        String saved = productServiceV4.loadCsvStreamingInChunks(filePath);
         return new ResponseEntity<>(saved, HttpStatus.OK);
     }
 
