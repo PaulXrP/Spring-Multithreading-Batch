@@ -22,6 +22,8 @@ public class ProductController {
 
     private final ProductServiceV4 productServiceV4;
 
+//    private final ProductServiceV5 productServiceV5;
+
     private final ProductionCsvProcessingService processingService;
 
     @PostMapping("/save-csv-batch")
@@ -66,6 +68,13 @@ public class ProductController {
         return new ResponseEntity<>(saved, HttpStatus.OK);
     }
 
+    @PostMapping("/save-csv-batch-streaming-plus-multithreading-using-ExecutorService-full-async")
+    public ResponseEntity<String> saveProductsFromCsvToDbInBatch7(@RequestParam("filepath")
+                                                                  String filePath) {
+        String saved = productServiceV4.loadCsvStreamingInChunks2(filePath);
+        return new ResponseEntity<>(saved, HttpStatus.OK);
+    }
+
     @PostMapping("/save-csv-batch-via-Jdbc-template")
     public ResponseEntity<String> saveProductsFromCsvToDbInBatchJdbc(@RequestParam("filepath")
                                                                  String filePath) {
@@ -79,6 +88,12 @@ public class ProductController {
         return new ResponseEntity<>(allIds, HttpStatus.FOUND);
     }
 
+    @GetMapping("/allIdsFaster")
+    public ResponseEntity<List<Long>> getAllProductIds2() {
+        List<Long> allIds = productServiceV2.findAllProductIds();
+        return new ResponseEntity<>(allIds, HttpStatus.FOUND);
+    }
+
     @GetMapping("/reset")
     public ResponseEntity<String> dataReset() {
         String resetRecords = productService.resetRecords();
@@ -89,6 +104,12 @@ public class ProductController {
     @GetMapping("/resetJPQL")
     public ResponseEntity<String> dataResetJPQL() {
         String resetRecords = productService.resetRecordsJPQL();
+        return new ResponseEntity<>(resetRecords, HttpStatus.OK);
+    }
+
+    @GetMapping("/resetNative")
+    public ResponseEntity<String> dataResetNative() {
+        String resetRecords = productService.resetAllWithNativeSQL();
         return new ResponseEntity<>(resetRecords, HttpStatus.OK);
     }
 

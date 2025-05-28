@@ -177,6 +177,7 @@ public class ProductService {
 //        return "Data reset to DB!!!";
 //    }
 
+    //Load-modify-save (Object-based)
     public String resetRecords() {
         List<Product> all = productRepository.findAll();
 
@@ -191,10 +192,18 @@ public class ProductService {
         return "Data reset to DB!!!";
     }
 
+    //JPQL bulk update
     @Transactional
     public String resetRecordsJPQL() {
         productRepository.resetAllProductFields();
         return "Data reset to DB!!!";
+    }
+
+    //Native SQL with H2
+    @Transactional
+    public String resetAllWithNativeSQL() {
+        productRepository.resetAllProductFieldsNative();
+        return "Reset done with Native SQL!";
     }
 
     @Transactional

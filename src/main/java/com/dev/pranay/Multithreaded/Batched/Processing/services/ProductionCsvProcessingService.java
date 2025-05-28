@@ -161,8 +161,9 @@ public class ProductionCsvProcessingService {
                     log.error("Main thread interrupted while waiting for a chunk to complete.", e);
                     chunksFailedProcessingCounter.increment(); //count as failed
                 }
-                recordsPersistedCounter.increment(totalSuccessfullyPersistedRecordsThisJob); // This logic for counting successes needs refinement if tasks don't return counts
             }
+            recordsPersistedCounter.increment(totalSuccessfullyPersistedRecordsThisJob); // This logic for counting successes needs refinement if tasks don't return counts
+
         } catch (RejectedExecutionException e) {
             log.error("CSV processing task rejected. The processing queue might be full. Consider increasing queue capacity or slowing down submission.", e);
             return "JOB FAILED: Task submission rejected, queue likely full.";
@@ -261,3 +262,16 @@ public class ProductionCsvProcessingService {
         chunksSubmittedCounter.increment();
         }
 }
+
+/*
+When to Scale Further?
+
+| Feature                    | When to Use                                  |
+| -------------------------- | -------------------------------------------- |
+| **ThreadPoolExecutor**     | Default for most scalable use cases          |
+| **@Async + Spring Events** | For decoupled background processing          |
+| **Kafka or Queue**         | If CSV upload is user-triggered & async      |
+| **Spring Batch**           | If job restartability and job history matter |
+| **Apache Spark/Flink**     | If you cross 10M+ records and go distributed |
+
+ */

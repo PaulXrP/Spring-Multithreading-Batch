@@ -215,6 +215,11 @@ public class ProductServiceV3 {
                     chunkBuffer.clear();
 
                     futures.add(executor.submit(() -> {
+                        /*
+                        Every thread calls createEntityManager() → new, thread-safe EM instance.
+                                Hibernate (and JPA generally) does not allow shared EntityManager across threads.
+                                We're correctly isolating EMs per thread.
+                         */
                         EntityManager em = emf.createEntityManager();
                         EntityTransaction transaction = em.getTransaction();
 

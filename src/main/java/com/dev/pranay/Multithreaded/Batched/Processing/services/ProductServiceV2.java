@@ -32,10 +32,15 @@ public class ProductServiceV2 {
 
 
 
+//    @Transactional
     public List<Long> getAllIds() {
         return productRepository.findAll()
                 .stream().map(Product::getId)
                 .collect(Collectors.toList());
+    }
+
+    public List<Long> findAllProductIds() {
+        return productRepository.findAllProductIds();
     }
 
     public String resetRecords() {

@@ -51,6 +51,13 @@ public class ProductBatchInserter implements Runnable {
             }
             em.flush();
             em.clear();
+            /*
+            Forces Hibernate to write pending inserts to DB and detach them from persistence
+            context.
+            Prevents memory overflow (especially when processing millions of lines).
+            Critical for high-performance + low-memory import pipelines.
+            Final flush/clear outside the loop ensures the last batch is saved even if <2000.
+             */
         } catch (Exception e) {
             e.printStackTrace();
         }

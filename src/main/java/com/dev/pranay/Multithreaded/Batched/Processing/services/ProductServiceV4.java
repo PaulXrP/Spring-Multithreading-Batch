@@ -22,6 +22,7 @@ public class ProductServiceV4 {
 
     private final ProductBatchAsyncService productBatchAsyncService;
 
+    //using Executor + Async Service
     public String loadCsvStreamingInChunks(String filePath) {
         final int CHUNK_SIZE = 2000;
         final int THREAD_POOL_SIZE = 4;
@@ -76,4 +77,56 @@ public class ProductServiceV4 {
 
         return "Streaming + Multithreaded batch processing done!";
     }
+
+
+    // this version is using only Spring’s @Async mechanism for concurrency,
+    // without manually creating an ExecutorService
+    public String loadCsvStreamingInChunks2(String filePath) {
+        final int CHUNK_SIZE = 2000;
+        List<String> chunkBuffer = new ArrayList<>();
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))){
+            String line;
+            boolean isFirstLine = true;
+
+            while ((line = br.readLine()) != null) {
+                if(isFirstLine) {
+                    isFirstLine = false; //skip header
+                    continue;
+                }
+
+                chunkBuffer.add(line);
+
+                if(chunkBuffer.size() == CHUNK_SIZE) {
+                    List<String> chunkToProcess = new ArrayList<>(chunkBuffer);
+                    chunkBuffer.clear();
+
+                    futures.add(productBatchAsyncService.persistChunk2(chunkToProcess));
+                }
+            }
+
+            // handle remaining lines
+            if(!chunkBuffer.isEmpty()) {
+                futures.add(productBatchAsyncService.persistChunk2(new ArrayList<>(chunkBuffer)));
+            }
+
+            // wait for all async chunks to complete
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        } catch (IOException e) {
+            log.error("Error processing CSV: {}", e.getMessage());
+        }
+        return "Async batch processing completed!";
+    }
+
+    /*
+     If loadCsvStreamingInChunks2 and persistChunk2 were in the same service class:
+    Then @Async on persistChunk2 would not have worked at all — the method would run synchronously,
+    and you'd see no parallelism or background threading.
+
+    Why?
+    Because Spring AOP (Aspect-Oriented Programming) only applies @Async,
+     @Transactional, and similar annotations when a Spring proxy calls the method.
+
+     */
 }

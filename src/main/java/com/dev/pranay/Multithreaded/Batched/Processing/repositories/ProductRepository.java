@@ -18,6 +18,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("UPDATE Product p SET p.isOfferApplied = false, p.priceAfterDiscount = p.price, p.discountPercentage = 0")
     void resetAllProductFields();
 
+    @Modifying
+    @Query(value = "UPDATE products SET is_offer_applied = false, price_after_discount = price, discount_percentage = 0", nativeQuery = true)
+    void resetAllProductFieldsNative();
+
+    @Query("SELECT p.id FROM Product p")
+    List<Long> findAllProductIds();
+
     // For Strategy (Batch with Fetch)
     List<Product> findTop1000By(); // Retrieves top 1000 records (no filter)
 
