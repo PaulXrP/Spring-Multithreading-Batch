@@ -30,6 +30,9 @@ spring:
         order_updates: true             # ✅ Orders UPDATEs to optimize batching
         generate_statistics: true       # ✅ Enables Session Metrics logs
 
+  elasticsearch:
+    uris: http://localhost:9200
+
 logging:
   level:
     org.hibernate.SQL: DEBUG
