@@ -36,4 +36,10 @@ public class ProductSearchController {
         productIndexService.indexAllProducts();
         return ResponseEntity.ok("Re-indexing initiated.");
     }
+
+    @PostMapping("/reindexMultithreaded") //Example endpoint to trigger re-indexing
+    public ResponseEntity<String> reindexAllMultithreaded() {
+        productIndexService.indexAllProductsMultithreaded();
+        return ResponseEntity.ok("Re-indexing via multi-threaded initiated.");
+    }
 }

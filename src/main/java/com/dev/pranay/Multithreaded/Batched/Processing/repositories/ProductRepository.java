@@ -1,6 +1,9 @@
 package com.dev.pranay.Multithreaded.Batched.Processing.repositories;
 
 import com.dev.pranay.Multithreaded.Batched.Processing.entities.Product;
+import com.dev.pranay.Multithreaded.Batched.Processing.entities.ProductProjection;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -52,6 +55,17 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Transactional
     @Query("DELETE FROM Product p WHERE p.category = :category")
     int deleteByCategory(String category);
+
+//    @Query("SELECT p.id AS id, p.name AS name, p.category AS category, " +
+//            "p.price AS price, p.isOfferApplied AS isOfferApplied, " +
+//            "p.discountPercentage AS discountPercentage, p.priceAfterDiscount AS priceAfterDiscount " +
+//            "FROM Product p")
+//    Page<ProductProjection> findAllProjected(Pageable pageable);
+
+
+    //    // Spring Data JPA will automatically generate the SELECT clause
+    //    // based on the ProductProjection interface
+    Page<ProductProjection> findAllBy(Pageable pageable); // Returns all entities as projections
 
         /*
         In contrast, if this were not set-based:
