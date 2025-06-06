@@ -25,14 +25,14 @@ public class ProductDocument {
     private String category;
 
     @Field(type = FieldType.Double)
-    private double price;
+    private Double price;
 
     @Field(type = FieldType.Boolean)
     private boolean isOfferApplied;
 
     @Field(type = FieldType.Double)
-    private double discountPercentage;
+    private Double discountPercentage;
 
     @Field(type = FieldType.Double)
-    private double priceAfterDiscount;
+    private Double priceAfterDiscount;
 }

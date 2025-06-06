@@ -184,7 +184,7 @@ public class ProductService {
         all.forEach(product -> {
                     product.setOfferApplied(false);
                     product.setPriceAfterDiscount(product.getPrice());
-                    product.setDiscountPercentage(0);
+                    product.setDiscountPercentage((double) 0L);
                 });
 
 
@@ -246,7 +246,7 @@ public class ProductService {
             product.setOfferApplied(true);
         }
 
-        product.setDiscountPercentage(discountPercentage);
+        product.setDiscountPercentage((double) discountPercentage);
         product.setPriceAfterDiscount(priceAfterDiscount);
     }
 

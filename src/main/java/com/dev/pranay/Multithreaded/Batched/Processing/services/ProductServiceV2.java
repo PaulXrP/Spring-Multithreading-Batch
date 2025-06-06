@@ -48,7 +48,7 @@ public class ProductServiceV2 {
                 .forEach(product -> {
                     product.setOfferApplied(false);
                     product.setPriceAfterDiscount(product.getPrice());
-                    product.setDiscountPercentage(0);
+                    product.setDiscountPercentage((double) 0);
                     productRepository.save(product);
                 });
         return "Data reset to DB!!!";
@@ -134,7 +134,7 @@ public class ProductServiceV2 {
             product.setOfferApplied(true);
         }
 
-        product.setDiscountPercentage(discountPercentage);
+        product.setDiscountPercentage((double) discountPercentage);
         product.setPriceAfterDiscount(priceAfterDiscount);
     }
 }

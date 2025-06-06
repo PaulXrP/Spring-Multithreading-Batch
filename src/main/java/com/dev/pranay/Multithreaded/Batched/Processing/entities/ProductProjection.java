@@ -1,11 +1,18 @@
 package com.dev.pranay.Multithreaded.Batched.Processing.entities;
 
+import org.springframework.beans.factory.annotation.Value;
+
 public interface ProductProjection {
     Long getId();
     String getName();
     String getCategory();
     Double getPrice();
     boolean getIsOfferApplied();
+//    boolean isOfferApplied();
+//
+//    @Value("#{target.isOfferApplied}")
+//    boolean getOfferApplied();
+
     Double getDiscountPercentage();
     Double getPriceAfterDiscount();
 }

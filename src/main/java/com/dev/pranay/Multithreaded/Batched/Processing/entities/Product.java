@@ -19,11 +19,11 @@ public class Product {
     private Long id;
     private String name;
     private String category;
-    private double price;
+    private Double price;
     @Column(name = "is_offer_applied")
     private boolean isOfferApplied;
     @Column(name = "discount_percentage")
-    private double discountPercentage;
+    private Double discountPercentage;
     @Column(name = "price_after_discount")
-    private double priceAfterDiscount;
+    private Double priceAfterDiscount;
 }

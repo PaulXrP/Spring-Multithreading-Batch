@@ -105,6 +105,14 @@ public class ProductIndexService {
             Thread.currentThread().interrupt();
         }
       return "Finished indexing all products.";
+
+        /*
+        Hitting the re-indexing endpoint again will re-process all products from our database.
+        For products already in Elasticsearch (matched by ID), their data in Elasticsearch
+        will be updated to reflect the current state in our database.
+        This is generally the desired behavior for a re-indexing operation,
+        as it ensures Elasticsearch is synchronized with our source of truth.
+         */
     }
 
     // Index a single product (useful for ongoing sync)

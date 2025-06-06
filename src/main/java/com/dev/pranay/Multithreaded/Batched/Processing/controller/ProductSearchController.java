@@ -2,6 +2,8 @@ package com.dev.pranay.Multithreaded.Batched.Processing.controller;
 
 import com.dev.pranay.Multithreaded.Batched.Processing.entities.ProductDocument;
 import com.dev.pranay.Multithreaded.Batched.Processing.services.ProductIndexService;
+import com.dev.pranay.Multithreaded.Batched.Processing.services.ProductIndexService2;
+import com.dev.pranay.Multithreaded.Batched.Processing.services.ProductIndexService3;
 import com.dev.pranay.Multithreaded.Batched.Processing.services.ProductSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,10 @@ public class ProductSearchController {
     private final ProductSearchService productSearchService;
 
     private final ProductIndexService productIndexService;
+
+    private final ProductIndexService2 productIndexService2;
+
+    private final ProductIndexService3 productIndexService3;
 
     @GetMapping
     public ResponseEntity<List<ProductDocument>> search(
@@ -41,5 +47,23 @@ public class ProductSearchController {
     public ResponseEntity<String> reindexAllMultithreaded() {
         productIndexService.indexAllProductsMultithreaded();
         return ResponseEntity.ok("Re-indexing via multi-threaded initiated.");
+    }
+
+    @PostMapping("/reindexMultithreaded2") //Example endpoint to trigger re-indexing
+    public ResponseEntity<String> reindexAllMultithreaded2() {
+        String indexed = productIndexService2.indexAllProductsConcurrently();
+        return new ResponseEntity<>(indexed, HttpStatus.OK);
+    }
+
+    @PostMapping("/reindexMultithreadedNativeBulk") //Example endpoint to trigger re-indexing
+    public ResponseEntity<String> reindexAllMultithreadedNativeBulk() {
+        String indexed = productIndexService2.indexAllProducts();
+        return new ResponseEntity<>(indexed, HttpStatus.OK);
+    }
+
+    @PostMapping("/reindexAllMultithreadedNativeBulk2") //Example endpoint to trigger re-indexing
+    public ResponseEntity<String> reindexAllMultithreadedNativeBulk2() {
+        String indexed = productIndexService3.indexAllProductsConcurrently();
+        return new ResponseEntity<>(indexed, HttpStatus.OK);
     }
 }
