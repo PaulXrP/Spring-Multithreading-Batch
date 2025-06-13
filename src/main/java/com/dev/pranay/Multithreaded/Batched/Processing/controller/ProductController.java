@@ -24,6 +24,12 @@ public class ProductController {
 
 //    private final ProductServiceV5 productServiceV5;
 
+    private final ProductServiceV2a productServiceV2a;
+
+    private final ProductServiceV2aStreaming productServiceV2aStreaming;
+
+    private final ProductServiceV2aStreamingSemaphore productServiceV2aStreamingSemaphore;
+
     private final ProductionCsvProcessingService processingService;
 
     @PostMapping("/save-csv-batch")
@@ -122,6 +128,26 @@ public class ProductController {
     @PostMapping("/process/v2") //431 ms for 1000 records
     public ResponseEntity<String> processIdsV2(@RequestBody List<Long> productIds) {
         String processed = productServiceV2.executeProductIds(productIds);
+        return new ResponseEntity<>(processed, HttpStatus.OK);
+    }
+
+    @PostMapping("/process/v2a") //
+    public ResponseEntity<String> processIdsV2a() {
+        String processed = productServiceV2a.applyDiscountsInParallel();
+        return new ResponseEntity<>(processed, HttpStatus.OK);
+    }
+
+    //In-App Streaming (The Immediate Improvement)
+    @PostMapping("/process/v2aStreaming") //
+    public ResponseEntity<String> processIdsV2aStreaming() {
+        String processed = productServiceV2aStreaming.applyDiscountsInParallelWithStreaming();
+        return new ResponseEntity<>(processed, HttpStatus.OK);
+    }
+
+    //In-App Streaming (The Immediate Improvement) with semaphore
+    @PostMapping("/process/v2aStreamingSemaphore") //
+    public ResponseEntity<String> processIdsV2aStreamingSemaphore() {
+        String processed = productServiceV2aStreamingSemaphore.applyDiscounts();
         return new ResponseEntity<>(processed, HttpStatus.OK);
     }
 

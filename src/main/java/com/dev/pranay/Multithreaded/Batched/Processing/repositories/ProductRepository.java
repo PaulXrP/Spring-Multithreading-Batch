@@ -2,17 +2,22 @@ package com.dev.pranay.Multithreaded.Batched.Processing.repositories;
 
 import com.dev.pranay.Multithreaded.Batched.Processing.entities.Product;
 import com.dev.pranay.Multithreaded.Batched.Processing.entities.ProductProjection;
+import jakarta.persistence.QueryHint;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Stream;
+
+import static org.hibernate.jpa.HibernateHints.*;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
@@ -66,6 +71,53 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     //    // Spring Data JPA will automatically generate the SELECT clause
     //    // based on the ProductProjection interface
     Page<ProductProjection> findAllBy(Pageable pageable); // Returns all entities as projections
+
+
+    /**
+     * Resets the discount-related fields for all products in a single bulk update operation.
+     * The @Modifying annotation is crucial as it indicates that this query will change the database state.
+     *
+     * @return The number of rows affected by the update.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Product p SET p.isOfferApplied = false, p.priceAfterDiscount = p.price, p.discountPercentage = 0")
+    int resetAllProducts();
+
+    /*
+     * NEW STREAMING METHOD
+     * This method returns a forward-only, read-only stream of products.
+     * The database connection remains open while the stream is being processed.
+     * It's crucial to wrap the call to this method in a try-with-resources block.
+     * @QueryHints are used to instruct Hibernate to optimize for streaming by not caching entities
+     * and using a server-side cursor.
+     */
+
+     @Query("SELECT p FROM Product p")
+     @QueryHints(value = {
+             @QueryHint(name = HINT_FETCH_SIZE, value = "2000"), //// Same as our batch size
+             @QueryHint(name = HINT_CACHEABLE, value = "false"),
+             @QueryHint(name = HINT_READ_ONLY, value = "true")
+     })
+     Stream<Product> streamAllProducts();
+
+    /**
+     * This is the core method for our restartable stream.
+     * It efficiently streams only the products that have not yet been processed.
+     */
+     @Query("SELECT p FROM Product p WHERE p.postProcessed = false")
+     @QueryHints(value = {
+             @QueryHint(name = HINT_FETCH_SIZE, value = "2000"), // DB fetch size
+             @QueryHint(name = HINT_CACHEABLE, value = "false"), // Don't cache results
+             @QueryHint(name = HINT_READ_ONLY, value = "true") // Read-only optimization
+     })
+     Stream<Product> streamUnprocessedProducts();
+
+
+
+
+
+
+
 
         /*
         In contrast, if this were not set-based:

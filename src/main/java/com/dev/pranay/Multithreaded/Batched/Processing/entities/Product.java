@@ -26,4 +26,13 @@ public class Product {
     private Double discountPercentage;
     @Column(name = "price_after_discount")
     private Double priceAfterDiscount;
+
+    /**
+     * This flag is the key to making the batch job idempotent and restartable.
+     * We will only stream records where this is false, and we'll set it to true
+     * within the same transaction that we apply the discount.
+     * Ensure the database column for this defaults to 'false'.
+     */
+
+    private boolean postProcessed = false;
 }
