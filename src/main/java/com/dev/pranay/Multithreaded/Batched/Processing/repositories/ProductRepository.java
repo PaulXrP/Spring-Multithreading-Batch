@@ -113,6 +113,18 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      Stream<Product> streamUnprocessedProducts();
 
 
+    /**
+     * Finds all products that have not yet been post-processed, returning the results
+     * in a paginated format. The {@code postProcessed} flag is crucial for making the
+     * job idempotent (safe to re-run).
+     *
+     * @param pageable The pagination information (page number, size).
+     * @return A Page of unprocessed Products.
+     */
+    @Query("SELECT p FROM Product p WHERE p.postProcessed = false OR p.postProcessed IS NULL")
+    Page<Product> findUnprocessed(Pageable pageable);
+
+
 
 
 
