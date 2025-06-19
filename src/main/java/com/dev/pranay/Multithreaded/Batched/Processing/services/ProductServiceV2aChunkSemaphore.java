@@ -1,8 +1,10 @@
 package com.dev.pranay.Multithreaded.Batched.Processing.services;
 
+import com.dev.pranay.Multithreaded.Batched.Processing.config.BatchProcessingMetrics;
 import com.dev.pranay.Multithreaded.Batched.Processing.config.PaginationConfig;
 import com.dev.pranay.Multithreaded.Batched.Processing.entities.Product;
 import com.dev.pranay.Multithreaded.Batched.Processing.repositories.ProductRepository;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -19,6 +21,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
+/**
+ * Streaming has a nice flow and elegance for short or mid-sized jobs,
+ * but chunked pagination is more robust and maintainable for long-running production workloads.
+ */
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -29,6 +36,8 @@ public class ProductServiceV2aChunkSemaphore {
 
     private final ProductRepository productRepository;
     private final TransactionalBatchProcessor batchProcessor;
+    private final BatchProcessingMetrics metrics; //Inject metrics component
+
     @Qualifier("postProcessingExecutor")
     private final ExecutorService executor;
 
@@ -78,15 +87,19 @@ public class ProductServiceV2aChunkSemaphore {
      */
     private void submitBatchForProcessing(List<CompletableFuture<Void>> futures, List<Product> batch) {
         try {
+            // THIS IS THE BACKPRESSURE POINT
             // 1. Acquire Permit (Backpressure): Blocks if the max number of concurrent tasks is reached.
             backpressureSemaphore.acquire();
             log.trace("Semaphore permit acquired. Active tasks: ~{}", MAX_CONCURRENT_BATCHES - backpressureSemaphore.availablePermits());
 
             CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                Timer.Sample timerSample = metrics.startTimer(); //start timer
                 try {
                     // 2. Process with Retry Logic
                     processBatchWithRetries(batch);
                 } finally {
+                    metrics.stopTimer(timerSample); //stop timer
+                    // THIS RELEASES THE PRESSURE
                     // 3. CRITICAL: Always release the permit in a finally block to prevent deadlocks.
                     backpressureSemaphore.release();
                     log.trace("Semaphore permit released.");
@@ -110,12 +123,14 @@ public class ProductServiceV2aChunkSemaphore {
               // Delegate the actual work to the transactional component.
               // Each attempt will run in a completely new transaction.
               batchProcessor.processBatch(batch);
+              metrics.incrementBatchesProcessed(); // Increment success counter
               return; // Success, exit the loop.
           } catch (Exception e) {
               log.warn("Attempt {}/{} failed for batch starting with product ID {}. Retrying... Error: {}",
                       attempt, maxRetries, batch.get(0).getId(), e.getMessage());
 
               if(attempt == maxRetries) {
+                  metrics.incrementBatchesFailed(); //increment failure counter
                   // DEAD-LETTER QUEUE: The batch has permanently failed. Log the IDs for manual review.
                   List<Long> failedIds = batch.stream()
                           .map(product -> product.getId())

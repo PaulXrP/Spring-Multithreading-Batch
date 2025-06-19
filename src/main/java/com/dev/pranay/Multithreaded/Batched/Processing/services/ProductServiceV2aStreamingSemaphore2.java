@@ -18,6 +18,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Stream;
 
+/*
+Streaming has a nice flow and elegance for short or mid-sized jobs,
+but chunked pagination is more robust and maintainable for long-running production workloads.
+ */
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
