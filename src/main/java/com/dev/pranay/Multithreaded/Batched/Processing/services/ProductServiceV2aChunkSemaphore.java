@@ -157,3 +157,74 @@ public class ProductServiceV2aChunkSemaphore {
         }
     }
 }
+
+
+/**
+ *  the current implementation of ProductPostProcessor does not take care of checkpointing
+ *  for resumability.
+ *
+ * Here’s why:
+ *
+ * It Always Starts from the Beginning: Every time the processAllWithPagination() method is called,
+ * it initializes int pageNumber = 0; and starts fetching records from the very first page.
+ *
+ * No Persistent State: The current pageNumber is just a local variable held in memory.
+ * If the application crashes or is restarted halfway through the job (say, at page 500),
+ * that progress is lost. When the job runs again, it will start over from page 0.
+ *
+ * While the postProcessed = true flag on each product prevents the business logic from
+ * being applied twice to the same record (which is great for idempotency),
+ * the job still has to waste significant time and resources re-fetching and skipping over
+ * the hundreds of pages it has already successfully completed.
+ *
+ * A true checkpoint mechanism would involve persisting the last successfully completed
+ * page number (or last product ID for keyset pagination) to a database table or a file,
+ * and reading from it at the start of the job to resume from where it left off.
+ */
+
+
+/**
+ * why do we need checkpoint despite having postProcessed flag?
+ *
+ *
+ *We've hit on the key distinction between application memory and persistent database storage.
+ *
+ * The job will still run from the start because the variable that keeps track of the
+ * current page number (pageNumber) exists only in our application's memory.
+ *
+ * Here’s the sequence of events when a crash happens without a checkpoint:
+ *
+ * Job is Running: Your ProductPostProcessor is happily running.
+ * The pageNumber variable in memory has a value of 500.
+ * Application Crashes: The application process is terminated unexpectedly.
+ * Everything in the application's memory, including the pageNumber variable, is completely erased.
+ * It's gone forever.
+ * Application Restarts: You start the application again.
+ * Job is Triggered: The processAllWithPagination() method is called.
+ * Re-initialization: The code executes this line again from scratch:
+ * Java
+ * int pageNumber = 0;
+ * The application has no memory of the previous run, so it initializes pageNumber back to
+ * its starting value of 0.
+ * The postProcessed flag is different because it's stored in the database, which is persistent.
+ * The database survives the crash.
+ *
+ * So, while the database remembers which individual products are done,
+ * the application itself forgets which page it was on.
+ * This forces the application to start its loop from page 0 and re-read all 500 pages,
+ * even if it ends up doing no work with the products on those pages.
+ * This is the Wasted Work.
+ *
+ * The postProcessed flag is for Correctness.
+ * It's a safety net at the record level to guarantee an item is never discounted twice,
+ * no matter what. It ensures the final state of your data is correct.
+ *
+ * The JobCheckpoint is for Efficiency.
+ * It's a performance optimization at the job level to prevent wasting time and resources
+ * after a crash. It ensures the recovery process is fast.
+ *
+ * we need both for a truly production-grade system: one to ensure we don't do the wrong thing,
+ * and the other to ensure you don't do the right thing over and over again unnecessarily.
+ */
+
+

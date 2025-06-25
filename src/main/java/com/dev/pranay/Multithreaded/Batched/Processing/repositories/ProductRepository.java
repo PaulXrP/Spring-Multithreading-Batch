@@ -124,6 +124,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p WHERE p.postProcessed = false OR p.postProcessed IS NULL")
     Page<Product> findUnprocessed(Pageable pageable);
 
+    // Fetch the next 2000 unprocessed products after the given ID, in ascending order.
+    List<Product> findTop2000ByIdGreaterThanOrderByIdAsc(Integer lastProcessedId);
+
+
 
 
 
