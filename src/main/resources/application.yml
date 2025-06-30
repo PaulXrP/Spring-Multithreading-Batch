@@ -30,6 +30,17 @@ spring:
         order_updates: true             # ✅ Orders UPDATEs to optimize batching
         generate_statistics: true       # ✅ Enables Session Metrics logs
 
+  batch:
+    job:
+      # This prevents Spring Batch from running all jobs on application startup.
+      # It's essential when you want to trigger jobs via a controller or scheduler.
+      enabled: false
+    jdbc:
+      # This tells Spring Batch to create its metadata tables (BATCH_JOB_INSTANCE, etc.)
+      # in the database on startup if they don't exist.
+      # Options: ALWAYS, EMBEDDED (default, for H2/HSQL), NEVER
+      initialize-schema: ALWAYS
+
   elasticsearch:
     uris: http://localhost:9200
 
