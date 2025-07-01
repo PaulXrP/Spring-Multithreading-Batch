@@ -49,3 +49,10 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql: TRACE
     org.hibernate.engine.jdbc.batch.internal: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Expose the health and metrics endpoints
+        include: health,metrics

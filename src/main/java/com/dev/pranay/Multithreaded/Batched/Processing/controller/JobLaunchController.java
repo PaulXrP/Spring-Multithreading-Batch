@@ -38,7 +38,7 @@ public class JobLaunchController {
             return ResponseEntity.ok("Discount processing job started successfully.");
         } catch (Exception e) {
             log.error("Failed to start the discount processing job", e);
-            ResponseEntity.internalServerError().body("Failed to start job: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Failed to start job: " + e.getMessage());
         }
     }
 }

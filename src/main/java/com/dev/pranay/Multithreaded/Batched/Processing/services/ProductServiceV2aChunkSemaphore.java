@@ -38,7 +38,7 @@ public class ProductServiceV2aChunkSemaphore {
     private final TransactionalBatchProcessor batchProcessor;
     private final BatchProcessingMetrics metrics; //Inject metrics component
 
-    @Qualifier("postProcessingExecutor")
+    @Qualifier("batchExecutorService")
     private final ExecutorService executor;
 
     // --- Job Configuration ---

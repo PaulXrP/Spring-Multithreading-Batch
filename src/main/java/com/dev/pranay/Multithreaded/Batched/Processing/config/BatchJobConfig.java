@@ -1,14 +1,18 @@
 package com.dev.pranay.Multithreaded.Batched.Processing.config;
 
+import com.dev.pranay.Multithreaded.Batched.Processing.batch.listener.BatchMetricsListener;
 import com.dev.pranay.Multithreaded.Batched.Processing.batch.listener.JobCompletionNotificationListener;
 import com.dev.pranay.Multithreaded.Batched.Processing.batch.listener.ProductSkipListener;
+import com.dev.pranay.Multithreaded.Batched.Processing.batch.readers.SynchronizedKeysetItemReader;
 import com.dev.pranay.Multithreaded.Batched.Processing.entities.Product;
+import com.dev.pranay.Multithreaded.Batched.Processing.repositories.ProductRepository;
 import com.dev.pranay.Multithreaded.Batched.Processing.services.DiscountProductItemProcessor;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.PessimisticLockException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
@@ -28,6 +32,9 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.concurrent.ThreadPoolExecutor;
 
+//This Spring Batch implementation is a best-in-class, production-grade, single-node solution.
+
+
 @Configuration
 @RequiredArgsConstructor
 public class BatchJobConfig {
@@ -38,6 +45,8 @@ public class BatchJobConfig {
      private final DiscountProductItemProcessor discountProductItemProcessor;
      private final JobCompletionNotificationListener jobCompletionListener;
      private final ProductSkipListener productSkipListener;
+     private final BatchMetricsListener batchMetricsListener;
+     private final ProductRepository productRepository;
 
      @Value("${batch.processing.chunkSize:1000}")
      private int chunkSize;
@@ -72,7 +81,8 @@ public class BatchJobConfig {
     public Step mainStep() {
         return new StepBuilder("mainStep", jobRepository)
                 .<Product, Product>chunk(chunkSize, transactionManager) // Process products in chunks
-                .reader(pagingItemReader())
+//                .reader(pagingItemReader())keysetItemReader()
+                .reader(keysetItemReader()) //new reader bean
                 .processor(discountProductItemProcessor)
                 .writer(jpaItemWriter())
                 .faultTolerant() // Enable fault tolerance
@@ -82,9 +92,21 @@ public class BatchJobConfig {
                 .skipLimit(skipLimit) //Max number of items to skip before failing the step
                 .skip(Exception.class) //Skip on any exception after retries are exhausted
                 .listener(productSkipListener) // Attach the skip listener for DLQ logging
+                .listener(batchMetricsListener) // Listener for performance metrics
                 .taskExecutor(taskExecutor()) //Enables multi-threaded step execution
                 .build();
 
+    }
+
+    /**
+     * Creates our new custom, thread-safe, keyset-based reader.
+     * It is defined with @StepScope to ensure a new instance is created for each step execution,
+     * which is a best practice for stateful readers.
+     */
+    @Bean
+    @StepScope
+    public synchronized SynchronizedKeysetItemReader keysetItemReader() {
+        return new SynchronizedKeysetItemReader(productRepository, chunkSize);
     }
 
     /**
@@ -144,4 +166,19 @@ public class BatchJobConfig {
  *
  * Business Logic (DiscountProductItemProcessor):
  * The isolated, testable component that performs the actual data transformation.
+ */
+
+/***
+ * Our current ProductServiceV2aChunkSemaphoreWithCheckPointAndDLQ and the Spring Batch job
+ * are asynchronous, but they are not event-driven.
+ * The Reader, Processor, and Writer are all tightly coupled components working together
+ * within a single, monolithic Job process.
+ * They are not communicating by sending messages to each other through an external broker.
+ */
+
+/**
+ * This Spring Batch implementation is a best-in-class, production-grade, single-node solution.
+ * However, it has not yet implemented the core distributed concepts from the next Phase design.
+ * Phase 3 is not an improvement on the current code; it's a fundamental architectural shift
+ * from a single-node application to a multi-node distributed system.
  */

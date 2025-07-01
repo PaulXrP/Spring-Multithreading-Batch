@@ -127,6 +127,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // Fetch the next 2000 unprocessed products after the given ID, in ascending order.
     List<Product> findTop2000ByIdGreaterThanOrderByIdAsc(Integer lastProcessedId);
 
+    @Query("SELECT p FROM Product p WHERE p.id > :lastId AND p.postProcessed = false ORDER BY p.id ASC LIMIT :pageSize")
+    List<Product> findTopWithIdGreaterThan(Long lastId, int pageSize);
+
 
 
 

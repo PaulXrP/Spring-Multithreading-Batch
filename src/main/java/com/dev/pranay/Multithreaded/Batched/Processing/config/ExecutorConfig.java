@@ -3,6 +3,7 @@ package com.dev.pranay.Multithreaded.Batched.Processing.config;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -29,6 +30,7 @@ public class ExecutorConfig {
      */
 
     @Bean(name = "postProcessingExecutor")
+    @Primary
     public ExecutorService postProcessingExecutor() {
         return new ThreadPoolExecutor(
                 10,
