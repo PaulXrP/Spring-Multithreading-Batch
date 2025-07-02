@@ -8,12 +8,20 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
 @Entity
 @Table(name = "products")
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class Product {
+
+// Implementing Serializable to the class definition
+public class Product implements Serializable {
+
+    // It's a best practice to add a version UID for serializable classes.
+    // This helps with versioning if you change the class structure later.
+    private static final long serialVersionUID = 1L;
 
     @Id
     private Long id;
@@ -36,3 +44,14 @@ public class Product {
 
     private boolean postProcessed = false;
 }
+
+/**
+ * The serialVersionUID is a private static final field.
+ * The Java Persistence API (JPA) and its implementation (Hibernate) are designed to
+ * map an entity's non-static, non-transient instance fields to database columns.
+ *
+ * Because serialVersionUID is static, the persistence framework completely ignores it
+ * during the process of creating or updating the database schema.
+ * It is used exclusively by Java's internal serialization mechanism to ensure that
+ * a serialized object can be correctly deserialized later.
+ */
